@@ -91,12 +91,13 @@ export default class AppService extends Service {
                     const txnService = new TransactionService();
                     if(ownerAddress !== VAULT_ADDRESS){
                         await queueService.queueCreditTransaction(newReceivedTxn);
-                        await txnService.createTransferTransaction( //send to vault
+                        await txnService.sendTransferTransaction( //send to vault
+                            parseFloat(newReceivedTxn.value),
                             newReceivedTxn.address ,
-                            VAULT_ADDRESS , newReceivedTxn.value
+                            VAULT_ADDRESS, undefined, true
                         )
                     } else { 
-
+                        //TODO
                     }
                 } 
             }

@@ -5,6 +5,7 @@ import AppDataSource from "../config/dataSource";
 import { VaultTransferStatuses } from "../config/enums";
 import { sumItemValues } from "../helpers/array_helpers";
 import TransactionService from "./TransactionService";
+import { VAULT_ADDRESS } from "../config/settings";
 
 
 export default class VaultTransferService extends Service {
@@ -19,15 +20,14 @@ export default class VaultTransferService extends Service {
         if(pendingTxns.length > 0){
             const groups = this._groupTransactions(pendingTxns);
             const groupKeys = Array.from(groups.keys());
-            groupKeys.forEach((key) => {
+            for await (let key of groupKeys){
                 const selectedGroup = groups.get(key);
                 if((selectedGroup?.length ?? 0) > 0){
                     const totalValue = sumItemValues(selectedGroup ?? [],"value");
                     const txnService = new TransactionService();
-                    //await txnService.
-                    //TODO
+                    await txnService.sendTransferTransaction(totalValue,fromAddress,VAULT_ADDRESS,key,true);
                 }
-            })
+            }
         }
     }
 

@@ -27,7 +27,7 @@ class WalletServices extends Service {
         return account;
     }
 
-    async fetchTronBalance(address: string){
+    async fetchCoinBalance(address: string){
         const tronWeb = this.getVaultInstance();
         const balanceInSun = await tronWeb.trx.getBalance(address);
         return tronWeb.fromSun(balanceInSun);
@@ -44,7 +44,11 @@ class WalletServices extends Service {
         let walletModel = await this.walletRepo.findOne({where:{address}});
         if(walletModel === null){
             console.log('Could not find any account for selected address.....',address);
-            throw new Error(walletErrors.walletNotFound);
+            if(address === VAULT_ADDRESS){
+                return await this.getVaultWallet();
+            } else {
+                throw new Error(walletErrors.walletNotFound);
+            }
         }
         const walletCrypt = walletModel.walletCrypt;
         const wallet = decryptObject(walletCrypt);
