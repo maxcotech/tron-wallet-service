@@ -1,21 +1,21 @@
+import { Transaction } from './Transaction';
+
 export interface Block {
-    hash: string,
-        confirmations: number,
-        height: number,
-        version: number,
-        versionHex: string,
-        merkleroot: string,
-        time: number,
-        mediantime: number,
-        nonce: number,
-        bits: string,
-        difficulty: number,
-        chainwork: string,
-        nTx: number,
-        previousblockhash: string,
-        nextblockhash: string,
-        strippedsize: number,
-        size: number,
-        weight: number,
-        tx: string[]
+    blockID: string,
+    block_header: BlockHeader,
+    transactions: Transaction[]
+}
+
+export interface BlockHeader {
+    raw_data: BlockRawData,
+    witness_signature: string
+}
+
+export interface BlockRawData {
+    number: number,
+    txTrieRoot: string,
+    witness_address: string,
+    parentHash: string,
+    version: number,
+    timestamp: number
 }

@@ -3,6 +3,11 @@ import { DataSource } from "typeorm"
 import Wallet from './../entities/Wallet';
 import IndexedBlock from './../entities/IndexedBlock';
 import ReceivedTransaction from "../entities/ReceivedTransaction";
+import VaultTransfer from './../entities/VaultTransfer';
+import SentTransaction from "../entities/SentTransaction";
+import Contract from "../entities/Contract";
+import FailedMessage from "../entities/FailedMessage";
+import MessageQueue from "../entities/MessageQueue";
 
 const AppDataSource = new DataSource({
     type: "mysql",
@@ -11,7 +16,9 @@ const AppDataSource = new DataSource({
     username: "root",
     password: "",
     database: "tron_wallet_service",
-    entities: [Wallet
+    entities: [
+        Wallet, VaultTransfer, IndexedBlock,ReceivedTransaction, SentTransaction, 
+        Contract, FailedMessage, MessageQueue
         // ,IndexedBlock,ReceivedTransaction
     ],
     synchronize: true,

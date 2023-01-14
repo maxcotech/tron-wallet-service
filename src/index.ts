@@ -1,12 +1,11 @@
 import express from "express";
 import HomeController from "./controllers/HomeController";
 import WalletController from './controllers/WalletController';
-import AppService from './services/AppService';
-import BlockController from './controllers/BlockController';
 import AppDataSource from './config/dataSource';
 import TransactionController from './controllers/TransactionController';
 import bodyParser from "body-parser";
 import { requireAuthKey } from "./helpers/auth_helpers";
+import AppService from "./services/AppService";
 
 const app = express();
 const port = 2100;
@@ -25,10 +24,6 @@ AppDataSource.initialize().then(() => {
 }).catch((err) => {
     console.log('Data store initialization failed',err);
 });
-//const appService = new AppService();
+const appService = new AppService();
 
-
-
-
-
-//appService.syncBlockchainData();
+appService.syncBlockchainData();

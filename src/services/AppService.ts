@@ -10,6 +10,7 @@ import MessageQueueService from "./MessageQueueService";
 import TransactionService from "./TransactionService";
 import { VAULT_ADDRESS } from "../config/settings";
 import VaultTransferService from './VaultTransferService';
+import { Block } from "../dataTypes/Block";
 
 export default class AppService extends Service {
    
@@ -27,12 +28,17 @@ export default class AppService extends Service {
         this.contractRepo = AppDataSource.getRepository(Contract);
         this.tronWeb = this.getVaultInstance();
     }
+
+    public async getLatestBlockNumber(){
+        let block: Block = await this.tronWeb.trx.getCurrentBlock();
+        return block.block_header.raw_data.number;
+    }
     public async syncBlockchainData() {
         setTimeout(async () => {
             try {
                 await this.syncMissingBlocks();
                 const lastIndexed = await this.getLastIndexedNumber();
-                const blockNumber = await this.tronWeb.trx.getCurrentBlock();
+                const blockNumber = await this.getLatestBlockNumber();
                 if(lastIndexed < blockNumber){
                     console.log("New Block Found ",blockNumber)
                     this.processBlock(blockNumber);
@@ -149,7 +155,7 @@ export default class AppService extends Service {
     }
 
     public async syncMissingBlocks(){
-        const latestBlockNum = await this.tronWeb.trx.getBlockNumber();
+        const latestBlockNum = await this.getLatestBlockNumber();
         const lastIndexed = await this.getLastIndexedNumber();
         if(lastIndexed > 0){
             if(lastIndexed < latestBlockNum){
