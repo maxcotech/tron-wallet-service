@@ -1,7 +1,7 @@
 export enum ContractTypes {
   AccountCreateContract, // = 0,
-  TransferContract, // = 1,
-  TransferAssetContract, // = 2,
+  TransferContract = "TransferContract", // = 1,
+  TransferAssetContract = "TransferAssetContract", // = 2,
   VoteAssetContract = 3,
   VoteWitnessContract = 4,
   WitnessCreateContract = 5,
@@ -20,7 +20,7 @@ export enum ContractTypes {
   SetAccountIdContract = 19,
   CustomContract = 20,
   CreateSmartContract = 30,
-  TriggerSmartContract = 31,
+  TriggerSmartContract = "TriggerSmartContract",
   GetContract = 32,
   UpdateSettingContract = 33,
   ExchangeCreateContract = 41,
