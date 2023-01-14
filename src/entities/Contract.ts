@@ -6,7 +6,7 @@ export default class Contract {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
+    @Column({unique: true})
     tokenId: number;
 
     @Column({type:"varchar", length: 1000})
@@ -15,7 +15,7 @@ export default class Contract {
     @Column({type:"varchar", length: 100})
     contractSymbol: string;
 
-    @Column({type:"varchar", length:2000})
+    @Column({type:"varchar", length:2000, unique: true})
     contractAddress: string;
 
     @Column({type: "varchar", length:3000, nullable: true})

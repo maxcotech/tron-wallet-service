@@ -3,16 +3,13 @@ import Service from "./Service";
 import IndexedBlock from './../entities/IndexedBlock';
 import { Repository } from 'typeorm';
 import Wallet from "../entities/Wallet";
-import { ethers } from 'ethers';
 import ReceivedTransaction from "../entities/ReceivedTransaction";
-import TransactionMessager from "../messagers/TransactionMessager";
 import Contract from "../entities/Contract";
-import { TRANSFER_FUNC_BYTE } from "../config/appConstants";
 import { ContractTypes } from "../config/enums";
-import { decodeByteValue } from "../helpers/conversion_helpers";
 import MessageQueueService from "./MessageQueueService";
 import TransactionService from "./TransactionService";
 import { VAULT_ADDRESS } from "../config/settings";
+import VaultTransferService from './VaultTransferService';
 
 export default class AppService extends Service {
    
@@ -79,7 +76,7 @@ export default class AppService extends Service {
             const amount = this.tronWeb.fromSun(parameterValue.amount);
             const sentToVault = (this.isVaultAddress(toAddress))? true: false;
             if(await this.walletRepo.findOneBy({address: toAddress}) !== null || sentToVault){
-                console.log("Found a related transaction ", txID, parameterValue);
+                console.log("Found a related coin transaction ", txID, parameterValue);
                 const newReceivedTxn = new ReceivedTransaction();
                 newReceivedTxn.address = toAddress;
                 newReceivedTxn.value = this.tronWeb.fromSun(amount);
@@ -96,45 +93,63 @@ export default class AppService extends Service {
                             newReceivedTxn.address ,
                             VAULT_ADDRESS, undefined, true
                         )
-                    } else { 
-                        //TODO
+                    } else { // Send Token Balance to vault
+                        const vaultTransferService = new VaultTransferService();
+                        await vaultTransferService.processPendingTokenToVaultTxn(newReceivedTxn.address);
                     }
-                } 
+                }
             }
         } catch(e){
-            console.log(e)
+            console.log("Coin Processing Failed",e)
         }
         
     }
 
-    public async processTokenTransaction(contractAddress:string,transaction: ethers.providers.TransactionResponse){
-        const inputData = transaction.data;
-        if(inputData.indexOf(TRANSFER_FUNC_BYTE) !== -1){
-            console.log("Found Contract Transaction ",contractAddress);
-            const contract = await this.contractRepo.findOne({where:{contractAddress: contractAddress}});
+    public async processTokenTransaction(parameterValue: any,txID: any){
+        try{
+            const ownerAddress = parameterValue.owner_address;
+            const toAddress = parameterValue.to_address;
+            const sentToVault = (this.isVaultAddress(toAddress))? true: false;
+            const tokenId = parameterValue.asset_name;
+            const contract = await this.contractRepo.findOne({where:{tokenId}});
             if(contract !== null){
-                const contractInterface = new ethers.utils.Interface(JSON.parse(contract.contractAbi));
-                const parsedTxn = contractInterface.parseTransaction({data:transaction.data,value:transaction.value});
-                const toAddress = parsedTxn.args[0]?.toLowerCase() ?? "";
-                const walletRecord = await this.walletRepo.findOne({where:{address:toAddress}});
-                if(walletRecord !== null){
-                    const value = parsedTxn.args[1];
-                    const valueInEther = ethers.utils.formatUnits(value,contract?.decimalPlaces ?? process.env.DECIMAL_PLACES);
-                    const newReceivedTxn = new ReceivedTransaction();
-                    newReceivedTxn.address = toAddress;
-                    newReceivedTxn.txHash = transaction.hash;
-                    newReceivedTxn.contractId = contract.id;
-                    newReceivedTxn.value = valueInEther;
-                    await this.receivedTxnRepo.save(newReceivedTxn);
-                    const messager = new TransactionMessager();
-                    await messager.sendNewCreditTransaction({...newReceivedTxn,contractAddress});
+                const amount = this.tronWeb.fromSun(parameterValue.amount, contract.decimalPlaces);
+                if(await this.walletRepo.findOneBy({address: toAddress}) !== null || sentToVault){
+                    console.log("Found a related token transaction ", txID, parameterValue);
+                    const receivedTxn = new ReceivedTransaction();
+                    receivedTxn.address = toAddress;
+                    receivedTxn.sentToVault = sentToVault;
+                    receivedTxn.txId = txID;
+                    receivedTxn.value = amount;
+                    receivedTxn.contractId = contract.id;
+                    await this.receivedTxnRepo.save(receivedTxn);
+                    if(sentToVault !== true){
+                        const queueService = new MessageQueueService();
+                        const txnService = new TransactionService();
+                        if(ownerAddress !== VAULT_ADDRESS){ // Not sent by vault
+                            await queueService.queueCreditTransaction(receivedTxn); 
+                            // Calculate Fee and send fee required to move fund to vault 
+                            const fee = await txnService.calculateFeeByParams(
+                                parseFloat(receivedTxn.value),
+                                VAULT_ADDRESS,
+                                receivedTxn.address,
+                                receivedTxn.contractId
+                            );
+                            await txnService.sendTransferTransaction( //send to vault
+                                fee, VAULT_ADDRESS,receivedTxn.address,undefined,true
+                            )
+                        }
+                    }
                 }
             }
+            
+        } catch(e) {
+            console.log("Token Processing Failed", e);
         }
     }
 
     public async syncMissingBlocks(){
-        const latestBlockNum = await this.provider.getBlockNumber();
+        const latestBlockNum = await this.tronWeb.trx.getBlockNumber();
         const lastIndexed = await this.getLastIndexedNumber();
         if(lastIndexed > 0){
             if(lastIndexed < latestBlockNum){
@@ -149,7 +164,7 @@ export default class AppService extends Service {
             return lastSynced;
         }
         const nextToSync = lastSynced + 1;
-        console.log("syncing missing blocks ",nextToSync)
+        console.log("syncing block",nextToSync)
         await this.processBlock(nextToSync);
         return await this.syncToCurrent(nextToSync, currentNumber)
     }

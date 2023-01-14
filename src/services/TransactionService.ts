@@ -116,13 +116,30 @@ export default class TransactionService extends Service{
     }
 
 
+    async calculateFeeByParams(amount: number,fromAddress: string,toAddress: string, contractId? : number){
+        const contract = await this.contractRepo.findOneBy({id: contractId});
+        let transactionObj = null;
+        if(!!contract){
+            const value = this.tronWeb.toSun(amount, contract.decimalPlaces);
+            transactionObj = await asyncWrapper(() => this.tronWeb.transactionBuilder.sendToken(toAddress,value,contract.tokenId,fromAddress))
+        } else {
+            const value = this.tronWeb.toSun(amount);
+            transactionObj = await asyncWrapper(
+                () => this.tronWeb.transactionBuilder.sendTrx(toAddress,value,fromAddress)
+            )
+        }
+        return await this.calculateTransactionFee(transactionObj);
+    }
+    
+
+
     
     async calculateTransactionFee(transaction: any) {
         const feePerByte = await this.tronWeb.trx.getFeePerByte();
         const transactionSize = this.tronWeb.to.getTransactionSize(transaction);
         const transactionFee = feePerByte * transactionSize;
         return this.tronWeb.fromSun(transactionFee); // in TRX
-      }
+    }
     
 
 
