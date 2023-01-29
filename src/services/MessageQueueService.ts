@@ -33,6 +33,7 @@ export default class MessageQueueService extends Service {
             const messageString = JSON.stringify(messagePayload);
             const messageQueue = new MessageQueue();
             messageQueue.message = messageString;
+            console.log('message string',messageQueue.message ?? "none", messageString);
             messageQueue.type = MessageTypes.creditTransaction;
             await this.messageRepo.save(messageQueue);
             return true;

@@ -22,7 +22,7 @@ export async function requireAuthKey(controller: (params: HttpRequestParams) => 
             console.log(e);
             res.status(500).json({
                 success: false,
-                message: generalErrors.internalServerError
+                message: e.message ?? generalErrors.internalServerError
             })
         }
     }

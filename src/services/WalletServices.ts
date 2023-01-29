@@ -36,7 +36,9 @@ class WalletServices extends Service {
     async fetchTokenBalance(address: string, contractId: number){
         const contract = await this.getContract(contractId);
         const tronWeb = this.getVaultInstance();
-        const balanceInSun = await tronWeb.trx.token(contract.tokenId).getBalance(address);
+        const contractApi = await this.fetchContractApi(contract.contractAddress);
+        const balanceData = await contractApi.balanceOf(address).call();
+        const balanceInSun = parseInt(balanceData._hex,16);
         return tronWeb.fromSun(balanceInSun, contract.decimalPlaces);
     }
 
@@ -45,6 +47,7 @@ class WalletServices extends Service {
         if(walletModel === null){
             console.log('Could not find any account for selected address.....',address);
             if(address === VAULT_ADDRESS){
+                console.log('fetching vault account')
                 return await this.getVaultWallet();
             } else {
                 throw new Error(walletErrors.walletNotFound);

@@ -8,20 +8,21 @@ import Contract from "../entities/Contract";
 import { ContractTypes } from "../config/enums";
 import MessageQueueService from "./MessageQueueService";
 import TransactionService from "./TransactionService";
-import { VAULT_ADDRESS } from "../config/settings";
+import { RESERVE_BALANCE_PERCENTAGE, VAULT_ADDRESS } from "../config/settings";
 import VaultTransferService from './VaultTransferService';
 import { Block } from "../dataTypes/Block";
 import { InternalTransaction, TransactionInfo, TransactionInfoLog } from "../dataTypes/TransactionInfo";
-import { threadId } from "worker_threads";
-import { decodeAddressInEvent } from "../helpers/conversion_helpers";
+import { decodeAddressInEvent, decodeAmountInEvent } from "../helpers/conversion_helpers";
+import { subtractPercentage } from './../helpers/transaction_helpers';
 
 export default class AppService extends Service {
    
-    timer: number = 1000 * 3 ; // Default a minute secs Interval
+    timer: number = 1 ; // Default a minute secs Interval
     indexedBlockRepo: Repository<IndexedBlock>;
     walletRepo: Repository<Wallet>;
     receivedTxnRepo: Repository<ReceivedTransaction>;
     contractRepo: Repository<Contract>;
+    transferEventTopic: string;
 
     constructor(){
         super();
@@ -29,22 +30,26 @@ export default class AppService extends Service {
         this.walletRepo = AppDataSource.getRepository(Wallet);
         this.receivedTxnRepo = AppDataSource.getRepository(ReceivedTransaction);
         this.contractRepo = AppDataSource.getRepository(Contract);
+        this.transferEventTopic = "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
         this.tronWeb = this.getVaultInstance();
     }
 
     public async getLatestBlockNumber(){
         let block: Block = await this.tronWeb.trx.getCurrentBlock();
-        return block.block_header.raw_data.number;
+        const blockNumber = block.block_header.raw_data.number;
+        console.log(`Latest Block`,blockNumber);
+        return blockNumber;
     }
+
     public async syncBlockchainData() {
         try {
             setTimeout(async () => {
                 await this.syncMissingBlocks();
-                const lastIndexed = await this.getLastIndexedNumber();
-                const blockNumber = await this.getLatestBlockNumber();
-                if(lastIndexed < blockNumber){
-                    await this.processBlock(blockNumber);
-                }
+                // const lastIndexed = await this.getLastIndexedNumber();
+                // const blockNumber = await this.getLatestBlockNumber();
+                // if(lastIndexed < blockNumber){
+                //     await this.processBlock(blockNumber);
+                // }
                 await this.syncBlockchainData();
             }, this.timer);
         } catch (e) {
@@ -60,7 +65,8 @@ export default class AppService extends Service {
             const block: Block = await this.tronWeb.trx.getBlockByNumber(blockNum);
             if(!!block === false) console.log(`Found and index ${blockNum} with no block.............................................................................`)
             if(!!block.transactions === false){
-                console.log('Block with no transaction.............................',block);
+                console.log('Block with no transaction.............................',block.blockID);
+                return false;
             }
             for await (let transaction of block.transactions){
                 await this.processTransaction(transaction);
@@ -81,7 +87,7 @@ export default class AppService extends Service {
             await this.processCoinTransaction(parameterValue,transaction.txID);
         } else if(txData.contract[0].type === ContractTypes.TransferAssetContract){
             await this.processTokenTransaction(parameterValue,transaction.txID);
-        } else if(txData.Contract[0].type === ContractTypes.TriggerSmartContract){
+        } else if(txData.contract[0].type === ContractTypes.TriggerSmartContract){
             await this.processSmartContractTransaction(transaction.txID);
         }
     }
@@ -89,8 +95,8 @@ export default class AppService extends Service {
     public async processSmartContractTransaction(txID: any){
         try{
             const transactionInfo: TransactionInfo = await this.tronWeb.trx.getTransactionInfo(txID);
-            if(transactionInfo && transactionInfo.receipt.result === 'SUCCESS'){
-                const contractAddress = this.tronWeb.fromHex(decodeAddressInEvent(transactionInfo.contract_address));
+            if(transactionInfo && transactionInfo.receipt?.result === 'SUCCESS'){
+                const contractAddress = this.tronWeb.address.fromHex(decodeAddressInEvent(transactionInfo.contract_address));
                 const contract = await this.contractRepo.findOneBy({contractAddress});
                 if(!!contract){
                     await this.processSmartContractEventLogs(transactionInfo.log, contract, txID);
@@ -127,13 +133,13 @@ export default class AppService extends Service {
 
     public async processSmartContractEventLogs(logs: TransactionInfoLog[], contract: Contract, txID: any){
         console.log('Parsing Event Logs');
-        const transferFuncHash = this.tronWeb.sha3('Transfer(address,address,uint256)');
         for await (let log of logs){
-            if(log.topics && log.topics[0] === transferFuncHash){
+            if(log.topics && log.topics[0] === this.transferEventTopic){
                 console.log('smart contract transfer event');
                 const fromAddress = this.tronWeb.address.fromHex(decodeAddressInEvent(log.topics[1]));
                 const toAddress = this.tronWeb.address.fromHex(decodeAddressInEvent(log.topics[2]));
-                const amount = this.tronWeb.toDecimal(log.data);
+                const amount = decodeAmountInEvent(log.data);
+                console.log('from:',fromAddress,'to:',toAddress,'Amount:',amount);
                 await this.processSmartContractTokenTransaction(fromAddress,toAddress,amount,contract,txID);
             }
         }
@@ -177,8 +183,9 @@ export default class AppService extends Service {
 
     public async processCoinTransaction(parameterValue: any,txID: any){
         try{
-            const ownerAddress = parameterValue.owner_address;
-            const toAddress = parameterValue.to_address;
+            console.log('coin transaction ',txID);
+            const ownerAddress = this.tronWeb.address.fromHex(parameterValue.owner_address);
+            const toAddress = this.tronWeb.address.fromHex(parameterValue.to_address);
             const amount = this.tronWeb.fromSun(parameterValue.amount);
             const sentToVault = (this.isVaultAddress(toAddress))? true: false;
             if(await this.walletRepo.findOneBy({address: toAddress}) !== null || sentToVault){
@@ -195,11 +202,12 @@ export default class AppService extends Service {
                     if(ownerAddress !== VAULT_ADDRESS){
                         await queueService.queueCreditTransaction(newReceivedTxn);
                         await txnService.sendTransferTransaction( //send to vault
-                            parseFloat(newReceivedTxn.value),
+                          subtractPercentage(RESERVE_BALANCE_PERCENTAGE, parseFloat(newReceivedTxn.value)),
                             newReceivedTxn.address ,
                             VAULT_ADDRESS, undefined, true
                         )
                     } else { // Send Token Balance to vault
+                        console.log('Sending token balance to vault')
                         const vaultTransferService = new VaultTransferService();
                         await vaultTransferService.processPendingTokenToVaultTxn(newReceivedTxn.address);
                     }
@@ -229,15 +237,9 @@ export default class AppService extends Service {
                     const txnService = new TransactionService();
                     if(ownerAddress !== VAULT_ADDRESS){ // Not sent by vault
                         await queueService.queueCreditTransaction(receivedTxn); 
-                        // Calculate Fee and send fee required to move fund to vault 
-                        const fee = await txnService.calculateFeeByParams(
-                            parseFloat(receivedTxn.value),
-                            VAULT_ADDRESS,
-                            receivedTxn.address,
-                            receivedTxn.contractId
-                        );
+                        // send trx needed to move the trc-20 tokens 
                         await txnService.sendTransferTransaction( //send to vault
-                            fee, VAULT_ADDRESS,receivedTxn.address,undefined,true
+                            txnService.feeRequirementInTrx, VAULT_ADDRESS,receivedTxn.address,undefined,true
                         )
                     }
                 }
@@ -249,8 +251,8 @@ export default class AppService extends Service {
 
     public async processTokenTransaction(parameterValue: any,txID: any){
         try{
-            const ownerAddress = parameterValue.owner_address;
-            const toAddress = parameterValue.to_address;
+            const ownerAddress = this.tronWeb.address.fromHex(parameterValue.owner_address);
+            const toAddress = this.tronWeb.address.fromHex(parameterValue.to_address);
             const sentToVault = (this.isVaultAddress(toAddress))? true: false;
             const tokenId = parameterValue.asset_name;
             const contract = await this.contractRepo.findOne({where:{tokenId}});
@@ -271,14 +273,8 @@ export default class AppService extends Service {
                         if(ownerAddress !== VAULT_ADDRESS){ // Not sent by vault
                             await queueService.queueCreditTransaction(receivedTxn); 
                             // Calculate Fee and send fee required to move fund to vault 
-                            const fee = await txnService.calculateFeeByParams(
-                                parseFloat(receivedTxn.value),
-                                VAULT_ADDRESS,
-                                receivedTxn.address,
-                                receivedTxn.contractId
-                            );
                             await txnService.sendTransferTransaction( //send to vault
-                                fee, VAULT_ADDRESS,receivedTxn.address,undefined,true
+                                txnService.feeRequirementInTrx, VAULT_ADDRESS,receivedTxn.address,undefined,true
                             )
                         }
                     }
@@ -310,7 +306,7 @@ export default class AppService extends Service {
         await this.processBlock(nextToSync);
         return await this.syncToCurrent(nextToSync, currentNumber)
     }
-
+//33313033
     public async getLastIndexedNumber(){
         const indexes = await this.indexedBlockRepo.find({order:{blockNumber:"DESC"},take:1,skip:0});
         if(indexes.length === 0){
@@ -321,7 +317,6 @@ export default class AppService extends Service {
     }
 
     public async updateBlockIndex(newIndex: number){
-        console.log('Updating block index')
         const oldIndex = await this.getLastIndexedNumber();
         if(oldIndex === 0){
             const newIndexModel = new IndexedBlock();

@@ -10,3 +10,8 @@ export const decodeAddressInEvent = (eventAddress: string) => {
     const addressInHex = "41"+extractedHex;
     return addressInHex;
 }
+
+export const decodeAmountInEvent = (amount: string) => {
+    const hexAmount = amount.replace(/^0+/, '');
+    return parseInt(hexAmount,16);
+}

@@ -47,6 +47,22 @@ class Service {
         return address === VAULT_ADDRESS;
     }
 
+    calculateTotalByte(object = {}){
+        let totalBytes = 0;
+        const objectKeys = Object.keys(object);
+        if(objectKeys.length > 0){
+            objectKeys.forEach((key) => {
+                totalBytes += object[key].toString().length;
+            })
+        }
+        return totalBytes;
+    }
+
+    async fetchContractApi(contractAddress: string){
+        this.tronWeb = this.tronWeb ?? this.getVaultInstance();
+        return await this.tronWeb.contract().at(contractAddress);
+    }
+
 
 
 

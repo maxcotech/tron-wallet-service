@@ -30,3 +30,8 @@ export interface ContractParameterValue {
     owner_address: string,
     to_address: string
 }
+
+export interface TransactionRecursiveOptions {
+    reserveIncrement: number, 
+    retrialsLeft: number
+}

@@ -10,3 +10,4 @@ export const VAULT_PRIV_KEY = process.env.VAULT_PRIV_KEY ?? "";
 export const CLIENT_AUTH = process.env.CLIENT_AUTH ?? ""; 
 export const FAILED_MESSAGE_MAX_RETRIAL = process.env.FAILED_MESSAGE_MAX_RETRIAL ?? 1000;
 export const WALLET_DEFAULT_SYMBOL = process.env.WALLET_DEFAULT_SYMBOL ?? "TRX";
+export const RESERVE_BALANCE_PERCENTAGE = parseFloat(process.env.RESERVE_BALANCE_PERCENTAGE);
