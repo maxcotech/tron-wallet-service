@@ -119,7 +119,8 @@ export default class AppService extends Service {
                     const amount = txn.callValueInfo[0]?.callValue
                     const internalContract = await this.contractRepo.findOneBy({tokenId: parseInt(tokenId)})
                     if(!!tokenId){
-                        //token transaction
+                        //token transaction 
+                        console.log('token transaction with token id',tokenId)
                         if(!!internalContract){
                             await this.processSmartContractTokenTransaction(fromAddress,toAddress,amount,internalContract,txID);
                         }
@@ -246,6 +247,21 @@ export default class AppService extends Service {
             }
         } catch(e) {
             console.log("Token Processing Failed", e);
+        }
+    }
+
+    async saveReceivedTransaction(toAddress: string,sentToVault: boolean,txId: string,amount: any,contractId = null){
+        if(await this.receivedTxnRepo.findOneBy({txId}) !== null){
+            console.log('transaction ',txId,' already processed');
+            return null;
+        } else {
+            const receivedTxn = new ReceivedTransaction();
+            receivedTxn.address = toAddress;
+            receivedTxn.sentToVault = sentToVault;
+            receivedTxn.txId = txId;
+            receivedTxn.value = amount;
+            receivedTxn.contractId = contractId;
+            return await this.receivedTxnRepo.save(receivedTxn);
         }
     }
 

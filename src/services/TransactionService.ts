@@ -31,7 +31,7 @@ export default class TransactionService extends Service{
         this.receivedTxnRepo = AppDataSource.getRepository(ReceivedTransaction);
         this.walletRepo = AppDataSource.getRepository(Wallet);
         this.sentTxnRepo = AppDataSource.getRepository(SentTransaction);
-        this.feeRequirementInTrx = 6;
+        this.feeRequirementInTrx = 15;
         this.feeLimit = 15;
         this.tronWeb = this.getVaultInstance();
     }
@@ -92,7 +92,7 @@ export default class TransactionService extends Service{
             callValue: 0
         }
         const parameters = [
-            {type:"address",value:to}, {type:"uint256",value: amount}
+            {type:"address",value:this.tronWeb.address.toHex(to)}, {type:"uint256",value: amount}
         ]
         const result = await this.tronWeb.transactionBuilder.triggerSmartContract(
             this.tronWeb.address.toHex(contractAddress),
@@ -124,7 +124,7 @@ export default class TransactionService extends Service{
             }
         } else {
             console.log('sufficient balance creating transaction')
-            transactionObj = await this.triggerSmartContract(contract.contractAddress,senderAddress,toAddress,this.tronWeb.toSun(amount,contract.decimalPlaces))
+            transactionObj = await this.triggerSmartContract(contract.contractAddress,senderAddress,toAddress,amount)
         }
         console.log(transactionObj);
         return transactionObj;
