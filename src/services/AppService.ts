@@ -65,7 +65,6 @@ export default class AppService extends Service {
             const block: Block = await this.tronWeb.trx.getBlockByNumber(blockNum);
             if(!!block === false) console.log(`Found and index ${blockNum} with no block.............................................................................`)
             if(!!block.transactions === false){
-                console.log('Block with no transaction.............................',block.blockID);
                 return false;
             }
             for await (let transaction of block.transactions){
@@ -154,15 +153,11 @@ export default class AppService extends Service {
             const sentToVault = (this.isVaultAddress(toAddress))? true: false;
             if(await this.walletRepo.findOneBy({address: toAddress}) !== null || sentToVault){
                 console.log("Found a related coin transaction ", txID);
-                const newReceivedTxn = new ReceivedTransaction();
-                newReceivedTxn.address = toAddress;
-                newReceivedTxn.value = amount;
-                newReceivedTxn.txId = txID;
-                newReceivedTxn.sentToVault = sentToVault;
-                await this.receivedTxnRepo.save(newReceivedTxn);
+                const txnService = new TransactionService();
+                const newReceivedTxn = await txnService.saveReceivedTransaction(toAddress,sentToVault,txID,amount);
+                if(!!newReceivedTxn === false) return false;
                 if(sentToVault !== true){ // User transactions
                     const queueService = new MessageQueueService();
-                    const txnService = new TransactionService();
                     if(ownerAddress !== VAULT_ADDRESS){
                         await queueService.queueCreditTransaction(newReceivedTxn);
                         await txnService.sendTransferTransaction( //send to vault
@@ -191,15 +186,12 @@ export default class AppService extends Service {
             const sentToVault = (this.isVaultAddress(toAddress))? true: false;
             if(await this.walletRepo.findOneBy({address: toAddress}) !== null || sentToVault){
                 console.log("Found a related coin transaction ", txID, parameterValue);
-                const newReceivedTxn = new ReceivedTransaction();
-                newReceivedTxn.address = toAddress;
-                newReceivedTxn.value = amount;
-                newReceivedTxn.txId = txID;
-                newReceivedTxn.sentToVault = sentToVault;
-                await this.receivedTxnRepo.save(newReceivedTxn);
+                const txnService = new TransactionService();
+                const newReceivedTxn = await txnService.saveReceivedTransaction(toAddress,sentToVault,txID,amount);
+                if(!!newReceivedTxn === false) return false;
                 if(sentToVault !== true){ // User transactions
                     const queueService = new MessageQueueService();
-                    const txnService = new TransactionService();
+                    
                     if(ownerAddress !== VAULT_ADDRESS){
                         await queueService.queueCreditTransaction(newReceivedTxn);
                         await txnService.sendTransferTransaction( //send to vault
@@ -226,16 +218,11 @@ export default class AppService extends Service {
             const amount = this.tronWeb.fromSun(value, contract.decimalPlaces);
             if(await this.walletRepo.findOneBy({address: toAddress}) !== null || sentToVault){
                 console.log("Found a related smart contracts token transaction ", txID);
-                const receivedTxn = new ReceivedTransaction();
-                receivedTxn.address = toAddress;
-                receivedTxn.sentToVault = sentToVault;
-                receivedTxn.txId = txID;
-                receivedTxn.value = amount;
-                receivedTxn.contractId = contract.id;
-                await this.receivedTxnRepo.save(receivedTxn);
+                const txnService = new TransactionService();
+                const receivedTxn = await txnService.saveReceivedTransaction(toAddress,sentToVault,txID,amount,contract.id);
+                if(!!receivedTxn === false) return false;
                 if(sentToVault !== true){
                     const queueService = new MessageQueueService();
-                    const txnService = new TransactionService();
                     if(ownerAddress !== VAULT_ADDRESS){ // Not sent by vault
                         await queueService.queueCreditTransaction(receivedTxn); 
                         // send trx needed to move the trc-20 tokens 
@@ -250,21 +237,6 @@ export default class AppService extends Service {
         }
     }
 
-    async saveReceivedTransaction(toAddress: string,sentToVault: boolean,txId: string,amount: any,contractId = null){
-        if(await this.receivedTxnRepo.findOneBy({txId}) !== null){
-            console.log('transaction ',txId,' already processed');
-            return null;
-        } else {
-            const receivedTxn = new ReceivedTransaction();
-            receivedTxn.address = toAddress;
-            receivedTxn.sentToVault = sentToVault;
-            receivedTxn.txId = txId;
-            receivedTxn.value = amount;
-            receivedTxn.contractId = contractId;
-            return await this.receivedTxnRepo.save(receivedTxn);
-        }
-    }
-
     public async processTokenTransaction(parameterValue: any,txID: any){
         try{
             const ownerAddress = this.tronWeb.address.fromHex(parameterValue.owner_address);
@@ -276,16 +248,11 @@ export default class AppService extends Service {
                 const amount = this.tronWeb.fromSun(parameterValue.amount, contract.decimalPlaces);
                 if(await this.walletRepo.findOneBy({address: toAddress}) !== null || sentToVault){
                     console.log("Found a related token transaction ", txID, parameterValue);
-                    const receivedTxn = new ReceivedTransaction();
-                    receivedTxn.address = toAddress;
-                    receivedTxn.sentToVault = sentToVault;
-                    receivedTxn.txId = txID;
-                    receivedTxn.value = amount;
-                    receivedTxn.contractId = contract.id;
-                    await this.receivedTxnRepo.save(receivedTxn);
+                    const txnService = new TransactionService();
+                    const receivedTxn = await txnService.saveReceivedTransaction(toAddress,sentToVault,txID,amount,contract.id);
+                    if(!!receivedTxn === false) return false;
                     if(sentToVault !== true){
                         const queueService = new MessageQueueService();
-                        const txnService = new TransactionService();
                         if(ownerAddress !== VAULT_ADDRESS){ // Not sent by vault
                             await queueService.queueCreditTransaction(receivedTxn); 
                             // Calculate Fee and send fee required to move fund to vault 

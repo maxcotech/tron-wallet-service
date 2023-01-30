@@ -68,6 +68,21 @@ export default class TransactionService extends Service{
         }
     }
 
+    async saveReceivedTransaction(toAddress: string,sentToVault: boolean,txId: string,amount: any,contractId = null){
+        if(await this.receivedTxnRepo.findOneBy({txId}) !== null){
+            console.log('transaction ',txId,' already processed');
+            return null;
+        } else {
+            const receivedTxn = new ReceivedTransaction();
+            receivedTxn.address = toAddress;
+            receivedTxn.sentToVault = sentToVault;
+            receivedTxn.txId = txId;
+            receivedTxn.value = amount;
+            receivedTxn.contractId = contractId;
+            return await this.receivedTxnRepo.save(receivedTxn);
+        }
+    }
+
     
    
     async createTransferTransaction(amountInput?: number, fromAddress?: string , recipientAddress?: string, contractId?: number, acceptBelowAmount: boolean = false){
