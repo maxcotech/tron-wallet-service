@@ -21,7 +21,7 @@ export default class VaultTransfer {
     @Column({nullable: true})
     contractId: number; // Id of smart contract if not tron
 
-    @Column({type:'enum', enum: VaultTransferStatuses, default: VaultTransferStatuses.pending})
+    @Column({type:'tinyint',default: VaultTransferStatuses.pending})
     status: number;
 
     @Column()

@@ -17,7 +17,7 @@ import { subtractPercentage } from './../helpers/transaction_helpers';
 
 export default class AppService extends Service {
    
-    timer: number = 1 ; // Default a minute secs Interval
+    timer: number = 1000 * 30 ; // Default 30 seconds
     indexedBlockRepo: Repository<IndexedBlock>;
     walletRepo: Repository<Wallet>;
     receivedTxnRepo: Repository<ReceivedTransaction>;
@@ -139,7 +139,7 @@ export default class AppService extends Service {
                 const fromAddress = this.tronWeb.address.fromHex(decodeAddressInEvent(log.topics[1]));
                 const toAddress = this.tronWeb.address.fromHex(decodeAddressInEvent(log.topics[2]));
                 const amount = decodeAmountInEvent(log.data);
-                console.log('from:',fromAddress,'to:',toAddress,'Amount:',amount);
+                console.log('from:',fromAddress,'to:',toAddress,'Amount:',amount, 'encoded amount:', log.data);
                 await this.processSmartContractTokenTransaction(fromAddress,toAddress,amount,contract,txID);
             }
         }
@@ -217,7 +217,7 @@ export default class AppService extends Service {
             const sentToVault = (this.isVaultAddress(toAddress))? true: false;
             const amount = this.tronWeb.fromSun(value, contract.decimalPlaces);
             if(await this.walletRepo.findOneBy({address: toAddress}) !== null || sentToVault){
-                console.log("Found a related smart contracts token transaction ", txID);
+                console.log("Found a related smart contracts token transaction ", txID, "in token:"+amount,"In Sun: "+value);
                 const txnService = new TransactionService();
                 const receivedTxn = await txnService.saveReceivedTransaction(toAddress,sentToVault,txID,amount,contract.id);
                 if(!!receivedTxn === false) return false;
@@ -228,6 +228,11 @@ export default class AppService extends Service {
                         // send trx needed to move the trc-20 tokens 
                         await txnService.sendTransferTransaction( //send to vault
                             txnService.feeRequirementInTrx, VAULT_ADDRESS,receivedTxn.address,undefined,true
+                        )
+                        // create pending vault transfer 
+                        const vaultTransferService = new VaultTransferService();
+                        await vaultTransferService.recordPendingVaultTransfer(
+                            receivedTxn.address,VAULT_ADDRESS,receivedTxn.txId,receivedTxn.value,contract.id
                         )
                     }
                 }

@@ -151,11 +151,12 @@ export default class TransactionService extends Service{
         const balanceInSun = this.tronWeb.toSun(balance);
         const amount =  (!!amountInput)? this.tronWeb.toSun(amountInput): balanceInSun;
         let transactionObj = null;
-        console.log('creating coin txn in coin trf func',amountInput,balance);
-        const availableBalance = this.tronWeb.toSun(balance);
-        if(availableBalance < amount){
+        console.log('creating coin txn in coin trf func',{
+            balanceInSun, amount, amountInput, balance
+        });
+        if(balanceInSun < amount){
             if(acceptBelowAmount){
-                transactionObj = await this.recursivelyCreateCoinTransaction(toAddress,availableBalance,senderAddress);
+                transactionObj = await this.recursivelyCreateCoinTransaction(toAddress,balanceInSun,senderAddress);
             } else {
                 throw new Error(walletErrors.insufficientBalance);
             }

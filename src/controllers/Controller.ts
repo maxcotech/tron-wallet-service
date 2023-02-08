@@ -3,6 +3,9 @@ import { Request } from 'express';
 import { VAULT_ADDRESS } from '../config/settings';
 import TransactionService from './../services/TransactionService';
 import { decodeAmountInEvent } from './../helpers/conversion_helpers';
+import AppDataSource from './../config/dataSource';
+import VaultTransfer from '../entities/VaultTransfer';
+import { VaultTransferStatuses } from '../config/enums';
 
 class Controller {
     public static successWithData(res: Response,data: any, message: string = "successful"){
@@ -19,6 +22,7 @@ class Controller {
             const contractApi = await tronWeb.contract().at('TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf');
             const result = await contractApi.balanceOf('TYgyacFhwwNvtF44QVMxbMUQxGSUSGTFAa').call() //await tronWeb.trx.getChainParameters();
             const data = {...result,balance:tronWeb.fromSun(parseInt(result._hex,16),6)}
+            const transferRepo = AppDataSource.getRepository(VaultTransfer);
             res.json({
                 usdt_bal: tronWeb.fromSun(parseInt(result._hex,16),6),
                 feeLimit: tronWeb.fromSun(225000000),
@@ -28,6 +32,7 @@ class Controller {
                 //account_resource: await tronWeb.trx.getAccountResources(VAULT_ADDRESS),
                 txn: await tronWeb.trx.getTransaction('06eafddea239a4680bf93c93d5198b59c1de14f7fb5681ca43587af03eddb3a7'),
                 //txn_info: await tronWeb.trx.getTransactionInfo("06eafddea239a4680bf93c93d5198b59c1de14f7fb5681ca43587af03eddb3a7")
+                vaultTxns: await transferRepo.findBy({fromAddress:'TKvpJxxyFoFasspPS389UT2eM48mQ6tKEM', status: VaultTransferStatuses.pending})
         });
         } 
         catch(e){
