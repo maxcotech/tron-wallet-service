@@ -1,6 +1,5 @@
 import Service from './Service';
 import { Transaction, TransactionRecursiveOptions } from './../dataTypes/Transaction';
-import { config } from 'dotenv';
 import WalletServices from './WalletServices';
 import { Repository } from 'typeorm';
 import ReceivedTransaction from '../entities/ReceivedTransaction';
@@ -9,7 +8,6 @@ import Wallet from '../entities/Wallet';
 import { RESERVE_BALANCE_PERCENTAGE, VAULT_ADDRESS } from '../config/settings';
 import { walletErrors } from './../config/errors/wallet.errors';
 import { asyncWrapper } from './../helpers/function_helpers';
-import { TronWeb } from 'tronweb';
 import { transactionErrors } from '../config/errors/transaction.errors';
 import SentTransaction from '../entities/SentTransaction';
 import { subtractPercentage } from '../helpers/transaction_helpers';
@@ -26,7 +24,6 @@ export default class TransactionService extends Service{
 
     constructor(){
         super();
-        config();
         this.vaultTxnInterval = 1000 * 60 * 5;
         this.receivedTxnRepo = AppDataSource.getRepository(ReceivedTransaction);
         this.walletRepo = AppDataSource.getRepository(Wallet);

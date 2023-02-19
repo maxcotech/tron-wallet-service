@@ -1,16 +1,10 @@
 import Controller from './Controller';
-import { Request } from 'express';
-import { Response } from 'express';
 import TransactionService from '../services/TransactionService';
-import { config } from 'dotenv';
-import WalletServices from './../services/WalletServices';
-import { ethers } from 'ethers';
 import { HttpRequestParams } from './../dataTypes/Http';
 import { VAULT_ADDRESS } from '../config/settings';
 import AppDataSource from './../config/dataSource';
 import Contract from './../entities/Contract';
 import { transactionErrors } from './../config/errors/transaction.errors';
-config()
 
 export default class TransactionController extends Controller{
     
@@ -27,7 +21,7 @@ export default class TransactionController extends Controller{
             toAddress,
             contract?.id
         )
-        return {sentTransaction: result}
+        return {sentTransaction: result, amount}
     }
      
 }
