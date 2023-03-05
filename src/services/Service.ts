@@ -16,7 +16,7 @@ class Service {
     HttpProvider: TronWeb.providers.HttpProvider;
     apiKey: string | undefined;
     client: AxiosInstance;
-    tronWeb: TronWeb;
+    tronWeb: any;
     contractRepo: Repository<Contract>;
 
 
