@@ -1,11 +1,6 @@
 import { Response } from 'express';
 import { Request } from 'express';
-import { VAULT_ADDRESS } from '../config/settings';
 import TransactionService from './../services/TransactionService';
-import { decodeAmountInEvent } from './../helpers/conversion_helpers';
-import AppDataSource from './../config/dataSource';
-import VaultTransfer from '../entities/VaultTransfer';
-import { VaultTransferStatuses } from '../config/enums';
 
 class Controller {
     public static successWithData(res: Response,data: any, message: string = "successful"){
