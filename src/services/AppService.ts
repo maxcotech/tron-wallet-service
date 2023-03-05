@@ -281,6 +281,8 @@ export default class AppService extends Service {
             if(lastIndexed < latestBlockNum){
                 await this.syncToCurrent(lastIndexed,latestBlockNum);
             }
+        } else {
+           await this.processBlock(latestBlockNum);
         }
         return true;
     }
