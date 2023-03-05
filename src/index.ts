@@ -9,9 +9,9 @@ import AppService from "./services/AppService";
 import Controller from "./controllers/Controller";
 import MessageQueueService from "./services/MessageQueueService";
 import ContractController from "./controllers/ContractController";
+import { PORT } from "./config/settings";
 
 const app = express();
-const port = 2100;
 const jsonParser = bodyParser.json();
 AppDataSource.initialize().then(() => {
     console.log('Data Store initialized.');
@@ -26,8 +26,8 @@ AppDataSource.initialize().then(() => {
         app.delete('/contract/:address',await requireAuthKey(ContractController.deleteContract));
         app.get("/", HomeController.index);
 
-        app.listen(port,() => {
-            console.log(`Tron wallet service running on port ${port}`);
+        app.listen(PORT,() => {
+            console.log(`Tron wallet service running on port ${PORT}`);
         })
         messageService.processMessageQueue();
         appService.syncBlockchainData();

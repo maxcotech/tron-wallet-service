@@ -16,6 +16,7 @@ export const MESSAGE_RETRY_LIMIT = parseInt(process.env.MESSAGE_RETRY_LIMIT ?? "
 export const NETWORK_PATH = process.env.NETWORK_PATH ?? "mainnet";
 export const NODE_URL = process.env.NODE_URL ?? "https://api.nileex.io/";
 export const NODE_API_KEY = process.env.NODE_API_KEY ?? "https://nile.trongrid.io/";
+export const PORT = process.env.PORT ?? 2003
 
 
 //Database Specific Configs 
