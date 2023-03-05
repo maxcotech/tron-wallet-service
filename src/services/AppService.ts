@@ -282,6 +282,7 @@ export default class AppService extends Service {
                 await this.syncToCurrent(lastIndexed,latestBlockNum);
             }
         } else {
+           console.log('processing first block ever', latestBlockNum)
            await this.processBlock(latestBlockNum);
         }
         return true;
