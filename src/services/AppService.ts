@@ -17,7 +17,7 @@ import { subtractPercentage } from './../helpers/transaction_helpers';
 
 export default class AppService extends Service {
    
-    timer: number = 1000 * 30 ; // Default 30 seconds
+    timer: number = 1000 * 10 ; // Default 10 seconds
     indexedBlockRepo: Repository<IndexedBlock>;
     walletRepo: Repository<Wallet>;
     receivedTxnRepo: Repository<ReceivedTransaction>;

@@ -6,7 +6,7 @@ export default class MessageQueue {
     @PrimaryGeneratedColumn()
     id: number;
     
-    @Column({type:"json"})
+    @Column({type:"text"})
     message: string;
 
     @Column({type:"enum", enum: MessageTypes})

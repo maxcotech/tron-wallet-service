@@ -13,6 +13,10 @@ export const WALLET_DEFAULT_SYMBOL = process.env.WALLET_DEFAULT_SYMBOL ?? "TRX";
 export const RESERVE_BALANCE_PERCENTAGE = parseFloat(process.env.RESERVE_BALANCE_PERCENTAGE);
 export const APP_BASE_URL = process.env.APP_BASE_URL ?? "http://localhost:8000/api/v1/";
 export const MESSAGE_RETRY_LIMIT = parseInt(process.env.MESSAGE_RETRY_LIMIT ?? "100000");
+export const NETWORK_PATH = process.env.NETWORK_PATH ?? "mainnet";
+export const NODE_URL = process.env.NODE_URL ?? "https://api.nileex.io/";
+export const NODE_API_KEY = process.env.NODE_API_KEY ?? "https://nile.trongrid.io/";
+
 
 //Database Specific Configs 
 export const DB_TYPE = process.env.DB_TYPE ?? "mysql"

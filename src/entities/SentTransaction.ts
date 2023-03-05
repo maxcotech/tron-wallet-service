@@ -6,7 +6,7 @@ export default class SentTransaction {
     @PrimaryGeneratedColumn()
     id: number;
     
-    @Column({type:"varchar",length: 1000,unique: true})
+    @Column({type:"varchar",length: 255,unique: true})
     txId: string;
 
     @Column({default: false})

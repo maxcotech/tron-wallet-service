@@ -1,5 +1,5 @@
 import  axios, {AxiosInstance} from "axios";
-import { APP_BASE_URL, GB_API_KEY, VAULT_ADDRESS, VAULT_PRIV_KEY } from "../config/settings";
+import { APP_BASE_URL, GB_API_KEY, NODE_API_KEY, NODE_URL, VAULT_ADDRESS, VAULT_PRIV_KEY } from "../config/settings";
 //@ts-ignore
 import TronWeb from 'tronweb';
 import { Repository } from 'typeorm';
@@ -22,7 +22,7 @@ class Service {
 
     constructor(){
         this.apiKey = GB_API_KEY;
-        this.baseUrl = `https://trx.getblock.io/${GB_API_KEY}/testnet/`;
+        this.baseUrl = NODE_URL;
         this.HttpProvider = TronWeb.providers.HttpProvider;
         this.contractRepo = AppDataSource.getRepository(Contract);
 
@@ -35,10 +35,14 @@ class Service {
     }
 
     getTronWebInstance(privateKey: string){
-        return new TronWeb({
-            fullNode: new this.HttpProvider(this.baseUrl),
-            solidityNode: new this.HttpProvider("https://api.nileex.io/")
-        },privateKey)
+        const tronWeb = new TronWeb(
+            new this.HttpProvider(this.baseUrl),
+            new this.HttpProvider(this.baseUrl),
+            new this.HttpProvider(this.baseUrl),
+            privateKey
+        )
+        tronWeb.setHeader({"TRON-PRO-API-KEY": NODE_API_KEY});        
+        return tronWeb;
     }
 
     getVaultInstance(){

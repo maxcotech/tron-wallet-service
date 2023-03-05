@@ -15,7 +15,7 @@ export default class Contract {
     @Column({type:"varchar", length: 100})
     contractSymbol: string;
 
-    @Column({type:"varchar", length:2000, unique: true})
+    @Column({type:"varchar", length: 255})
     contractAddress: string;
 
     @Column({type: "varchar", length:3000, nullable: true})
