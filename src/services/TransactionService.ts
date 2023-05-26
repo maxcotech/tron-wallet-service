@@ -191,7 +191,7 @@ export default class TransactionService extends Service{
             query = query.andWhere('contractId IS NULL');
         } else {
             console.log('contract has a value of', contractId);
-            query = query.andWhere('contractId = :contract OR contractId IS NULL', { contract: contractId });
+            query = query.andWhere('contractId = :contract', { contract: contractId });
         }
         const result = await query.groupBy("sentToVault")
         .getRawMany();
