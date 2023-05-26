@@ -189,6 +189,7 @@ export default class TransactionService extends Service{
             console.log('no contract checking with null');
             query = query.where('contractId IS NULL')
         } else {
+            console.log('contract have value of ',contractId);
             query = query.where('contractId = :contract',{contract: contractId})
         }
         const result = await query.groupBy("sentToVault")
