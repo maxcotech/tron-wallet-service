@@ -182,18 +182,18 @@ export default class TransactionService extends Service{
     }
 
     async getWalletAccountInfo(contractId: null | number){
-        return this.receivedTxnRepo.find();
-        // let query = this.receivedTxnRepo.createQueryBuilder('received_transactions')
-        // query = query.select('received_transactions.sentToVault','sentToVault')
-        // .addSelect('SUM(CAST(value AS float))','totalBalance');
-        // if(!!contractId === false){
-        //     query = query.where('received_transactions.contractId IS NULL')
-        // } else {
-        //     query = query.where('received_transactions.contractId = :contract',{contract: contractId})
-        // }
-        // const result = await query.groupBy("received_transactions.sentToVault")
-        // .getRawMany();
-        // return result;
+        let query = this.receivedTxnRepo.createQueryBuilder('received_transactions')
+        query = query.select('sentToVault')
+        .addSelect('SUM(CAST(value AS float))','totalBalance');
+        if(!!contractId === false){
+            console.log('no contract checking with null');
+            query = query.where('contractId IS NULL')
+        } else {
+            query = query.where('contractId = :contract',{contract: contractId})
+        }
+        const result = await query.groupBy("sentToVault")
+        .getRawMany();
+        return result;
     }
 
 
