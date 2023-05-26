@@ -186,7 +186,9 @@ export default class TransactionService extends Service{
         query = query.select('received_transactions.sentToVault','sentToVault')
         .addSelect('SUM(CAST(value AS float))','totalBalance');
         if(!!contractId === false){
-            query = query.where('received_transactions.contractId IS NULL')
+            //query = query.where('received_transactions.contractId IS NULL')
+            query = query.where('received_transactions.contractId = :contract',{contract: 3})
+
         } else {
             query = query.where('received_transactions.contractId = :contract',{contract: contractId})
         }
