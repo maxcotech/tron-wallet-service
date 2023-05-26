@@ -186,11 +186,11 @@ export default class TransactionService extends Service{
         query = query.select('sentToVault')
         .addSelect('SUM(CAST(value AS float))','totalBalance');
         if(!!contractId === false){
-            query = query.where('contractId IS NULL')
+            query = query.where('received_transactions.contractId IS NULL')
         } else {
-            query = query.where('contractId = :contract',{contract: contractId})
+            query = query.where('received_transactions.contractId = :contract',{contract: contractId})
         }
-        const result = await query.groupBy("sentToVault")
+        const result = await query.groupBy("received_transactions.sentToVault")
         .getRawMany();
         return result;
     }
