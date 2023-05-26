@@ -183,7 +183,7 @@ export default class TransactionService extends Service{
 
     async getWalletAccountInfo(contractId: null | number){
         let query = this.receivedTxnRepo.createQueryBuilder('received_transactions')
-        query = query.select('sentToVault')
+        query = query.select('received_transactions.sentToVault','sentToVault')
         .addSelect('SUM(CAST(value AS float))','totalBalance');
         if(!!contractId === false){
             query = query.where('received_transactions.contractId IS NULL')
