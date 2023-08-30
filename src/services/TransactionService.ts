@@ -14,7 +14,7 @@ import { subtractPercentage } from '../helpers/transaction_helpers';
 
 
 
-export default class TransactionService extends Service{
+export default class TransactionService extends Service {
     vaultTxnInterval: number;
     receivedTxnRepo: Repository<ReceivedTransaction>;
     walletRepo: Repository<Wallet>;
@@ -22,7 +22,7 @@ export default class TransactionService extends Service{
     feeRequirementInTrx: number;
     feeLimit: number;
 
-    constructor(){
+    constructor() {
         super();
         this.vaultTxnInterval = 1000 * 60 * 5;
         this.receivedTxnRepo = AppDataSource.getRepository(ReceivedTransaction);
@@ -33,18 +33,18 @@ export default class TransactionService extends Service{
         this.tronWeb = this.getVaultInstance();
     }
 
-    async fetchFeeRequirementInTrx(){
+    async fetchFeeRequirementInTrx() {
         return this.feeRequirementInTrx;
     }
 
-    async fetchFeeLimitInSun(){
+    async fetchFeeLimitInSun() {
         return this.tronWeb.toSun(this.feeLimit);
     }
 
-    async sendTransferTransaction(amountInput?: number, fromAddress?: string , recipientAddress?: string, contractId?: number, acceptBelowAmount: boolean = false){
-        try{
-            const transaction = await this.createTransferTransaction(amountInput,fromAddress,recipientAddress,contractId,acceptBelowAmount);
-            if(!!transaction){
+    async sendTransferTransaction(amountInput?: number, fromAddress?: string, recipientAddress?: string, contractId?: number, acceptBelowAmount: boolean = false) {
+        try {
+            const transaction = await this.createTransferTransaction(amountInput, fromAddress, recipientAddress, contractId, acceptBelowAmount);
+            if (!!transaction) {
                 const walletServices = new WalletServices();
                 const senderWallet = await walletServices.fetchWalletFromAddress(fromAddress ?? VAULT_ADDRESS);
                 console.log('signing transaction');
@@ -52,22 +52,22 @@ export default class TransactionService extends Service{
                 console.log('transaction signed');
                 const receipt = await this.tronWeb.trx.sendRawTransaction(signedTxn);
                 console.log('transaction sent');
-                console.log("Transaction Receipt",receipt);
+                console.log("Transaction Receipt", receipt);
                 const sentTransaction = new SentTransaction();
                 sentTransaction.txId = transaction.txID;
                 await this.sentTxnRepo.save(sentTransaction);
                 return transaction.txID;
             }
             return false;
-        } catch(e){
+        } catch (e) {
             console.log(e);
             return false;
         }
     }
 
-    async saveReceivedTransaction(toAddress: string,sentToVault: boolean,txId: string,amount: any,contractId = null){
-        if(await this.receivedTxnRepo.findOneBy({txId}) !== null){
-            console.log('transaction ',txId,' already processed');
+    async saveReceivedTransaction(toAddress: string, sentToVault: boolean, txId: string, amount: any, contractId = null) {
+        if (await this.receivedTxnRepo.findOneBy({ txId }) !== null) {
+            console.log('transaction ', txId, ' already processed');
             return null;
         } else {
             const receivedTxn = new ReceivedTransaction();
@@ -80,31 +80,31 @@ export default class TransactionService extends Service{
         }
     }
 
-    
-   
-    async createTransferTransaction(amountInput?: number, fromAddress?: string , recipientAddress?: string, contractId?: number, acceptBelowAmount: boolean = false){
-        console.log('creating transfer transaction of ',amountInput);
+
+
+    async createTransferTransaction(amountInput?: number, fromAddress?: string, recipientAddress?: string, contractId?: number, acceptBelowAmount: boolean = false) {
+        console.log('creating transfer transaction of ', amountInput);
         const walletService = new WalletServices();
-        const toAddress = (!!recipientAddress)? recipientAddress: VAULT_ADDRESS;
-        const fromWallet = (!!fromAddress)? await walletService.fetchWalletFromAddress(fromAddress): await walletService.getVaultWallet()
+        const toAddress = (!!recipientAddress) ? recipientAddress : VAULT_ADDRESS;
+        const fromWallet = (!!fromAddress) ? await walletService.fetchWalletFromAddress(fromAddress) : await walletService.getVaultWallet()
         const senderAddress = fromAddress ?? fromWallet.address.base58;
         let transactionObj: Transaction | null = null;
-        if(!!contractId){
-            transactionObj = await this.createTokenTransfer(contractId,senderAddress,toAddress,amountInput,acceptBelowAmount);
+        if (!!contractId) {
+            transactionObj = await this.createTokenTransfer(contractId, senderAddress, toAddress, amountInput, acceptBelowAmount);
         } else {
-            transactionObj = await this.createCoinTransfer(senderAddress,toAddress,amountInput,acceptBelowAmount);
+            transactionObj = await this.createCoinTransfer(senderAddress, toAddress, amountInput, acceptBelowAmount);
         }
-        console.log('txn obj..............................',transactionObj);
+        console.log('txn obj..............................', transactionObj);
         return transactionObj;
     }
 
-    async triggerSmartContract(contractAddress: string,from: string,to: string,amount: number){
+    async triggerSmartContract(contractAddress: string, from: string, to: string, amount: number) {
         const options = {
             feeLimit: await this.fetchFeeLimitInSun(),
             callValue: 0
         }
         const parameters = [
-            {type:"address",value:this.tronWeb.address.toHex(to)}, {type:"uint256",value: amount}
+            { type: "address", value: this.tronWeb.address.toHex(to) }, { type: "uint256", value: amount }
         ]
         const result = await this.tronWeb.transactionBuilder.triggerSmartContract(
             this.tronWeb.address.toHex(contractAddress),
@@ -116,55 +116,55 @@ export default class TransactionService extends Service{
         return result?.transaction ?? null;
     }
 
-    async createTokenTransfer(contractId:number, senderAddress:any, toAddress: any,  amountInput?: number, acceptBelowAmount: boolean = false   ){
+    async createTokenTransfer(contractId: number, senderAddress: any, toAddress: any, amountInput?: number, acceptBelowAmount: boolean = false) {
         const contract = await this.getContract(contractId);
         let transactionObj = null;
         const walletService = new WalletServices();
-        const balance = this.tronWeb.toSun(await walletService.fetchTokenBalance(senderAddress,contract.id));
-        const amount =  (!!amountInput)? this.tronWeb.toSun(amountInput,contract.decimalPlaces): balance;
+        const balance = this.tronWeb.toSun(await walletService.fetchTokenBalance(senderAddress, contract.id));
+        const amount = (!!amountInput) ? this.tronWeb.toSun(amountInput, contract.decimalPlaces) : balance;
         const coinBalance = await walletService.fetchCoinBalance(senderAddress);
-        if(coinBalance < await this.fetchFeeRequirementInTrx()){
+        if (coinBalance < await this.fetchFeeRequirementInTrx()) {
             throw new Error(transactionErrors.insufficientFee);
         }
-        if(balance < amount) { 
+        if (balance < amount) {
             console.log('insufficient balance improvising')
-            if(acceptBelowAmount){
-                transactionObj = await this.triggerSmartContract(contract.contractAddress,senderAddress,toAddress,balance)
-                
+            if (acceptBelowAmount) {
+                transactionObj = await this.triggerSmartContract(contract.contractAddress, senderAddress, toAddress, balance)
+
             } else {
                 throw new Error(walletErrors.insufficientBalance);
             }
         } else {
             console.log('sufficient balance creating transaction')
-            transactionObj = await this.triggerSmartContract(contract.contractAddress,senderAddress,toAddress,amount)
+            transactionObj = await this.triggerSmartContract(contract.contractAddress, senderAddress, toAddress, amount)
         }
         console.log(transactionObj);
         return transactionObj;
     }
 
-    async createCoinTransfer(senderAddress:any, toAddress: any,  amountInput?: number, acceptBelowAmount: boolean = false ){
+    async createCoinTransfer(senderAddress: any, toAddress: any, amountInput?: number, acceptBelowAmount: boolean = false) {
         const walletService = new WalletServices();
         const balance = await walletService.fetchCoinBalance(senderAddress);
         const balanceInSun = this.tronWeb.toSun(balance);
-        const amount =  (!!amountInput)? this.tronWeb.toSun(amountInput): balanceInSun;
+        const amount = (!!amountInput) ? this.tronWeb.toSun(amountInput) : balanceInSun;
         let transactionObj = null;
-        console.log('creating coin txn in coin trf func',{
+        console.log('creating coin txn in coin trf func', {
             balanceInSun, amount, amountInput, balance
         });
-        if(balanceInSun < amount){
-            if(acceptBelowAmount){
-                transactionObj = await this.recursivelyCreateCoinTransaction(toAddress,balanceInSun,senderAddress);
+        if (balanceInSun < amount) {
+            if (acceptBelowAmount) {
+                transactionObj = await this.recursivelyCreateCoinTransaction(toAddress, balanceInSun, senderAddress);
             } else {
                 throw new Error(walletErrors.insufficientBalance);
             }
         } else {
-            transactionObj = await this.recursivelyCreateCoinTransaction(toAddress,amount,senderAddress);
+            transactionObj = await this.recursivelyCreateCoinTransaction(toAddress, amount, senderAddress);
         }
         return transactionObj;
     }
 
 
-    async calculateFeeByParams(amount: number,from: string,to : string, contractId? : number){
+    async calculateFeeByParams(amount: number, from: string, to: string, contractId?: number) {
         // const contract = await this.contractRepo.findOneBy({id: contractId});
         // let transactionObj = null;
         // if(!!contract){
@@ -176,15 +176,15 @@ export default class TransactionService extends Service{
         // }
         // return await this.calculateTransactionFee(transactionObj);
 
-        const data = {amount,from, to}
+        const data = { amount, from, to }
         return this.tronWeb.trx.getBandwidth(from);
 
     }
 
-    async getWalletAccountInfo(contractId: null | number){
+    async getWalletAccountInfo(contractId: null | number) {
         let query = this.receivedTxnRepo.createQueryBuilder('received_transactions');
         query = query.select('sentToVault')
-        .addSelect('SUM(CAST(value AS float))', 'totalBalance');
+            .addSelect('SUM(CAST(value AS float))', 'totalBalance');
 
         if (contractId === null || contractId === undefined) {
             console.log('no contract checking with null');
@@ -194,46 +194,46 @@ export default class TransactionService extends Service{
             query = query.andWhere('contractId = :contract', { contract: contractId });
         }
         const result = await query.groupBy("sentToVault")
-        .getRawMany();
+            .getRawMany();
 
         return result;
     }
 
 
-    
 
-    async recursivelyCreateCoinTransaction(toAddress: string,value: number,fromAddress: string,recursiveOptions: Partial<TransactionRecursiveOptions> = {}){
+
+    async recursivelyCreateCoinTransaction(toAddress: string, value: number, fromAddress: string, recursiveOptions: Partial<TransactionRecursiveOptions> = {}) {
         const reserveIncrement = recursiveOptions?.reserveIncrement ?? 0;
         const retrialsLeft = recursiveOptions?.retrialsLeft ?? 4;
         const amount = subtractPercentage(RESERVE_BALANCE_PERCENTAGE + reserveIncrement, value);
-        try{
+        try {
             console.log('creating txn recursively')
-            const txnObj = await asyncWrapper(() => this.tronWeb.transactionBuilder.sendTrx(toAddress,amount,fromAddress));
+            const txnObj = await asyncWrapper(() => this.tronWeb.transactionBuilder.sendTrx(toAddress, amount, fromAddress));
             return txnObj;
         }
-        catch(e){
+        catch (e) {
             let newIncrement = (reserveIncrement + 1) * 2;
-            console.log('transaction create failed, retrying with new reserveIncrement',reserveIncrement);
-            if(retrialsLeft === 0){
+            console.log('transaction create failed, retrying with new reserveIncrement', reserveIncrement);
+            if (retrialsLeft === 0) {
                 console.log('Failed to Process transaction');
                 return null;
             }
-            return this.recursivelyCreateCoinTransaction(toAddress,value,fromAddress,{
+            return this.recursivelyCreateCoinTransaction(toAddress, value, fromAddress, {
                 reserveIncrement: newIncrement,
-                retrialsLeft: retrialsLeft - 1 
+                retrialsLeft: retrialsLeft - 1
             })
         }
     }
 
 
-    
+
     async calculateTransactionFee(transaction: any) {
         const feePerByte = await this.tronWeb.trx.getFeePerByte();
         const transactionSize = this.tronWeb.to.getTransactionSize(transaction);
         const transactionFee = feePerByte * transactionSize;
         return this.tronWeb.fromSun(transactionFee); // in TRX
     }
-    
+
 
 
 

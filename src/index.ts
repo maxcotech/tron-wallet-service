@@ -18,23 +18,24 @@ AppDataSource.initialize().then(() => {
     (async () => {
         const appService = new AppService();
         const messageService = new MessageQueueService();
-        app.post("/address",jsonParser,await requireAuthKey(WalletController.createAccount));
-        app.post("/transaction",jsonParser,await requireAuthKey(TransactionController.createTransaction));
-        app.get('/test-run',Controller.testRun);
-        app.get('/retry-failed', async (req,res) => res.json({message:await messageService.reQueueFailedMessages()}));
-        app.post("/contract",jsonParser,await requireAuthKey(ContractController.saveContract));
-        app.delete('/contract/:address',await requireAuthKey(ContractController.deleteContract));
+        app.post("/address", jsonParser, await requireAuthKey(WalletController.createAccount));
+        app.post("/transaction", jsonParser, await requireAuthKey(TransactionController.createTransaction));
+        app.get('/test-run', Controller.testRun);
+        app.get('/retry-failed', async (req, res) => res.json({ message: await messageService.reQueueFailedMessages() }));
+        app.post("/contract", jsonParser, await requireAuthKey(ContractController.saveContract));
+        app.delete('/contract/:address', await requireAuthKey(ContractController.deleteContract));
+        app.get("/fee-estimate", await requireAuthKey(TransactionController.getFeeEstimate));
         app.get("/", HomeController.index);
 
-        app.listen(PORT,() => {
+        app.listen(PORT, () => {
             console.log(`Tron wallet service running on port ${PORT}`);
         })
         messageService.processMessageQueue();
         appService.syncBlockchainData();
     })()
-    
+
 
 }).catch((err) => {
-    console.log('Data store initialization failed',err);
+    console.log('Data store initialization failed', err);
 });
 
