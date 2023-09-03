@@ -10,6 +10,7 @@ import Controller from "./controllers/Controller";
 import MessageQueueService from "./services/MessageQueueService";
 import ContractController from "./controllers/ContractController";
 import { PORT } from "./config/settings";
+import ConfirmationService from "./services/ConfirmationService";
 
 const app = express();
 const jsonParser = bodyParser.json();
@@ -18,6 +19,7 @@ AppDataSource.initialize().then(() => {
     (async () => {
         const appService = new AppService();
         const messageService = new MessageQueueService();
+        const confirmationService = new ConfirmationService();
         app.post("/address", jsonParser, await requireAuthKey(WalletController.createAccount));
         app.post("/transaction", jsonParser, await requireAuthKey(TransactionController.createTransaction));
         app.get('/test-run', Controller.testRun);
@@ -32,6 +34,7 @@ AppDataSource.initialize().then(() => {
         })
         messageService.processMessageQueue();
         appService.syncBlockchainData();
+        confirmationService.processUnconfirmedTransactions();
     })()
 
 
