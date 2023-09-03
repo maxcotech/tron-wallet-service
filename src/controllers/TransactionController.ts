@@ -12,13 +12,14 @@ export default class TransactionController extends Controller {
         const txnService = new TransactionService();
         const feeUnits = await txnService.fetchFeeLimitInSun();
         const contractRepo = AppDataSource.getRepository(Contract)
+        const decimalPlaces = parseInt(DECIMAL_PLACES as string);
         const getContractDecimalPlaces = async () => {
             const contract = await contractRepo.findOne({ where: { contractAddress: req.query.contract as string } })
             return contract?.decimalPlaces;
         }
         return {
             feeUnits,
-            fee: feeUnits / 10 ** ((req.query?.contract) ? await getContractDecimalPlaces() : DECIMAL_PLACES),
+            fee: feeUnits / 10 ** ((req.query?.contract) ? await getContractDecimalPlaces() : decimalPlaces),
             amount: req.query?.amount,
             from: req.query?.from,
             to: req.query?.to
