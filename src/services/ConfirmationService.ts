@@ -15,15 +15,23 @@ export default class ConfirmationService extends Service {
      }
 
      async confirmTransaction(txn: ReceivedTransaction, client: AxiosInstance) {
-          if (txn.sentToVault != true) {
-               const response = await client.post(`transactions/chain/confirm`, {
-                    transaction: txn.txId
-               })
-               if (response.status === 200 || response.status === 204) {
-                    console.log('Message sent successfully......', txn.txId)
+          try {
+               if (txn.sentToVault != true) {
+                    const response = await client.post(`transactions/chain/confirm`, {
+                         transaction: txn.txId
+                    })
+                    if (response.status === 200 || response.status === 204) {
+                         console.log('Message sent successfully......', txn.txId);
+                         this.receivedRepo.update({ id: txn.id }, { confirmed: true });
+                    }
+               } else {
+                    this.receivedRepo.update({ id: txn.id }, { confirmed: true });
                }
+
           }
-          this.receivedRepo.update({ id: txn.id }, { confirmed: true });
+          catch (e) {
+               console.log(e);
+          }
      }
 
 
