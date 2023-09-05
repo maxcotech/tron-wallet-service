@@ -1,4 +1,4 @@
-import { AxiosInstance } from "axios";
+import { AxiosError, AxiosInstance } from "axios";
 import AppDataSource from "../config/dataSource";
 import { TXN_CONFIRM_MIN } from "../config/settings";
 import ReceivedTransaction from "../entities/ReceivedTransaction";
@@ -30,7 +30,11 @@ export default class ConfirmationService extends Service {
 
           }
           catch (e) {
-               console.log(e);
+               if (e instanceof AxiosError) {
+                    console.log(e.response?.data)
+               } else {
+                    console.log(e);
+               }
           }
      }
 
