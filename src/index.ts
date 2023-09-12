@@ -27,6 +27,7 @@ AppDataSource.initialize().then(() => {
         app.post("/contract", jsonParser, await requireAuthKey(ContractController.saveContract));
         app.delete('/contract/:address', await requireAuthKey(ContractController.deleteContract));
         app.get("/fee-estimate", await requireAuthKey(TransactionController.getFeeEstimate));
+        app.get('/wallet-balance', await requireAuthKey(HomeController.walletBalance));
         app.get("/", HomeController.index);
 
         app.listen(PORT, () => {

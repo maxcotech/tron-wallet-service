@@ -49,7 +49,7 @@ export default class ConfirmationService extends Service {
                this.queueHandler = setTimeout(async () => {
                     const txns = await this.receivedRepo.find({
                          where: { confirmed: false },
-                         order: { id: "DESC" }
+                         order: { id: "ASC" }
                     })
                     if (txns.length > 0) {
                          const currentBlock = await this.tronWeb.trx.getCurrentBlock();
