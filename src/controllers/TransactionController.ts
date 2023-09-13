@@ -39,7 +39,7 @@ export default class TransactionController extends Controller {
             toAddress,
             contract?.id
         )
-        return { sentTransaction: result, amount }
+        return { sentTransaction: result, address: toAddress, amount }
     }
 
 }
